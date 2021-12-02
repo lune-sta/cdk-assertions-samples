@@ -1,15 +1,30 @@
-import * as cdk from '@aws-cdk/core';
-// import * as sqs from '@aws-cdk/aws-sqs';
+import { Construct }  from 'constructs'
+import { Stack, StackProps, RemovalPolicy,
+  aws_lambda_nodejs as lambda,
+  aws_apigateway as apigateway,
+  aws_dynamodb as dynamodb } from 'aws-cdk-lib'
 
-export class CdkAssertionsSamplesStack extends cdk.Stack {
-  constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
-    super(scope, id, props);
+export class CdkAssertionsSamplesStack extends Stack {
+  constructor(scope: Construct, id: string, props?: StackProps) {
+    super(scope, id, props)
 
-    // The code that defines your stack goes here
+    const db = new dynamodb.Table(this, 'Table', {
+      partitionKey: {
+        name: 'itemId',
+        type: dynamodb.AttributeType.STRING,
+      },
+      tableName: 'items',
+      removalPolicy: RemovalPolicy.DESTROY,
+    })
 
-    // example resource
-    // const queue = new sqs.Queue(this, 'CdkAssertionsSamplesQueue', {
-    //   visibilityTimeout: cdk.Duration.seconds(300)
-    // });
+    const backend = new lambda.NodejsFunction(this, 'Function', {
+      entry: './lambda/index.ts',
+    })
+
+    db.grantReadWriteData(backend)
+
+    new apigateway.LambdaRestApi(this, 'Api', {
+      handler: backend
+    })
   }
 }
